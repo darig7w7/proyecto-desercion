@@ -1,0 +1,15 @@
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pydantic>=2.6
+pandas>=2.2
+numpy>=1.26
+
+# IMPORTANTE: scikit-learn y xgboost quedan fijos a la versión usada al entrenar
+# el modelo (ver notebooks/entrenamiento.ipynb). Si el modelo se reentrena con
+# otra versión, actualizar estas dos líneas para que coincidan, evitando así
+# advertencias o errores de compatibilidad al cargar el archivo .pkl.
+scikit-learn==1.8.0
+xgboost==3.4.1
+
+shap>=0.45
+joblib>=1.3
