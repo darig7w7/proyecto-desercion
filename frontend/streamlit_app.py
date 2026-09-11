@@ -21,22 +21,65 @@ API_URL = os.environ.get("API_URL", DEFAULT_API_URL)
 
 st.set_page_config(
     page_title="Student Dropout Risk Predictor",
-    page_icon="🎓",
+    page_icon=":bar_chart:",
     layout="wide",
 )
 
+# --- Design system --------------------------------------------------------
+# Palette: deep slate for text/headers, muted teal as the single accent,
+# warm neutral background. Risk colors are desaturated, not stock
+# green/yellow/red, so they read as data rather than a traffic light.
 st.markdown(
     """
     <style>
-    .main-title { font-size: 2.1rem; font-weight: 700; margin-bottom: 0.2rem; }
-    .subtitle { color: #6b7280; margin-bottom: 1.5rem; }
-    .risk-badge {
-        display: inline-block; padding: 0.4rem 1rem; border-radius: 999px;
-        font-weight: 700; font-size: 1.1rem;
+    @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&family=Inter:wght@400;500;600&display=swap');
+
+    html, body, [class*="css"]  { font-family: 'Inter', sans-serif; }
+
+    .block-container { padding-top: 2.2rem; max-width: 1180px; }
+
+    .app-header {
+        border-bottom: 1px solid #E2E4E9;
+        padding-bottom: 1.1rem;
+        margin-bottom: 1.6rem;
     }
-    .risk-bajo { background-color: #dcfce7; color: #166534; }
-    .risk-medio { background-color: #fef9c3; color: #854d0e; }
-    .risk-alto { background-color: #fee2e2; color: #991b1b; }
+    .app-kicker {
+        font-size: 0.82rem;
+        color: #6B7280;
+        letter-spacing: 0.01em;
+        margin-bottom: 0.35rem;
+    }
+    .main-title {
+        font-family: 'Source Serif 4', serif;
+        font-size: 2.05rem;
+        font-weight: 600;
+        color: #1C2333;
+        margin-bottom: 0.3rem;
+        line-height: 1.2;
+    }
+    .subtitle { color: #5B6472; font-size: 0.98rem; }
+
+    .risk-badge {
+        display: inline-block; padding: 0.3rem 0.85rem; border-radius: 4px;
+        font-weight: 600; font-size: 0.98rem; border: 1px solid transparent;
+    }
+    .risk-bajo   { background-color: #EAF3EF; color: #2F6D53; border-color: #CFE3D9; }
+    .risk-medio  { background-color: #FBF2E3; color: #8A5A1F; border-color: #EFDDBB; }
+    .risk-alto   { background-color: #FBEAEA; color: #A13B3B; border-color: #F0C9C9; }
+
+    div.stButton > button, div.stFormSubmitButton > button {
+        border-radius: 4px;
+        font-weight: 500;
+    }
+    div.stFormSubmitButton > button {
+        background-color: #1C2333;
+        color: #FFFFFF;
+        border: none;
+    }
+    div.stFormSubmitButton > button:hover {
+        background-color: #333D52;
+        color: #FFFFFF;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -63,23 +106,27 @@ def t(key):
 
 
 TEXTS = {
-    "title": {"en": "🎓 Student Dropout Risk Predictor", "es": "🎓 Predictor de Riesgo de Deserción"},
-    "subtitle": {
-        "en": "Machine Learning I — UNA Puno · Random Forest + SHAP explainability",
-        "es": "Aprendizaje de Máquina I — UNA Puno · Random Forest + explicabilidad SHAP",
+    "kicker": {
+        "en": "Universidad Nacional del Altiplano · Puno — Machine Learning I",
+        "es": "Universidad Nacional del Altiplano · Puno — Aprendizaje de Máquina I",
     },
-    "load_low": {"en": "📉 Load low-risk example", "es": "📉 Cargar ejemplo bajo riesgo"},
-    "load_high": {"en": "📈 Load high-risk example", "es": "📈 Cargar ejemplo alto riesgo"},
+    "title": {"en": "Student Dropout Risk Predictor", "es": "Predictor de Riesgo de Deserción"},
+    "subtitle": {
+        "en": "Random Forest classifier with SHAP-based per-prediction explainability",
+        "es": "Clasificador Random Forest con explicabilidad SHAP por predicción",
+    },
+    "load_low": {"en": "Load low-risk example", "es": "Cargar ejemplo de bajo riesgo"},
+    "load_high": {"en": "Load high-risk example", "es": "Cargar ejemplo de alto riesgo"},
     "own_data": {
         "en": "Or fill in your own student data below",
         "es": "O ingresa los datos de tu propio estudiante abajo",
     },
-    "section_personal": {"en": "👤 Personal & Socioeconomic Data", "es": "👤 Datos personales y socioeconómicos"},
-    "section_financial": {"en": "💰 Financial & Family Background", "es": "💰 Situación financiera y familiar"},
-    "section_enrollment": {"en": "📚 Enrollment Mode", "es": "📚 Modalidad de matrícula"},
-    "section_sem1": {"en": "📖 Academic Performance — 1st Semester", "es": "📖 Desempeño académico — 1er semestre"},
-    "section_sem2": {"en": "📖 Academic Performance — 2nd Semester", "es": "📖 Desempeño académico — 2do semestre"},
-    "section_macro": {"en": "🌍 Macroeconomic Context", "es": "🌍 Contexto macroeconómico"},
+    "section_personal": {"en": "Personal & Socioeconomic Data", "es": "Datos personales y socioeconómicos"},
+    "section_financial": {"en": "Financial & Family Background", "es": "Situación financiera y familiar"},
+    "section_enrollment": {"en": "Enrollment Mode", "es": "Modalidad de matrícula"},
+    "section_sem1": {"en": "Academic Performance — 1st Semester", "es": "Desempeño académico — 1er semestre"},
+    "section_sem2": {"en": "Academic Performance — 2nd Semester", "es": "Desempeño académico — 2do semestre"},
+    "section_macro": {"en": "Macroeconomic Context", "es": "Contexto macroeconómico"},
     "marital_status": {"en": "Marital status", "es": "Estado civil"},
     "application_mode": {"en": "Application mode", "es": "Modalidad de postulación"},
     "application_order": {"en": "Application order [0-9]", "es": "Orden de postulación [0-9]"},
@@ -114,7 +161,7 @@ TEXTS = {
     "unemployment": {"en": "Unemployment rate (%)", "es": "Tasa de desempleo (%)"},
     "inflation": {"en": "Inflation rate (%)", "es": "Tasa de inflación (%)"},
     "gdp": {"en": "GDP", "es": "PBI"},
-    "predict_button": {"en": "🔮 Predict dropout risk", "es": "🔮 Predecir riesgo de deserción"},
+    "predict_button": {"en": "Predict dropout risk", "es": "Predecir riesgo de deserción"},
     "querying": {"en": "Querying the model...", "es": "Consultando el modelo..."},
     "api_error": {"en": "Could not reach the API at", "es": "No se pudo contactar la API en"},
     "result_title": {"en": "Prediction Result", "es": "Resultado de la predicción"},
@@ -134,8 +181,16 @@ TEXTS = {
     "high": {"en": "High", "es": "Alto"},
 }
 
-st.markdown(f'<div class="main-title">{t("title")}</div>', unsafe_allow_html=True)
-st.markdown(f'<div class="subtitle">{t("subtitle")}</div>', unsafe_allow_html=True)
+st.markdown(
+    f'''
+    <div class="app-header">
+        <div class="app-kicker">{t("kicker")}</div>
+        <div class="main-title">{t("title")}</div>
+        <div class="subtitle">{t("subtitle")}</div>
+    </div>
+    ''',
+    unsafe_allow_html=True,
+)
 
 # --- Diccionarios de categorías (verificados contra notebooks/dataset.csv) ---
 # Se muestran en inglés en ambos idiomas, con el código numérico visible.
