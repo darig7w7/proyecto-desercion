@@ -1,10 +1,8 @@
 """
 Frontend interactivo para la API de Predicción de Deserción Estudiantil.
-Includes a language toggle (English / Español) for all UI labels.
-Category value lists (course, occupation, qualification, nationality,
-application mode) are kept in English in both modes — they are technical
-codes from the original dataset and are shown with their numeric code so
-they remain unambiguous regardless of language.
+Interfaz completamente en español para la predicción y explicación del riesgo.
+Los códigos técnicos del dataset se conservan internamente para mantener
+compatibilidad con el modelo entrenado.
 
 Ejecutar localmente:
     streamlit run streamlit_app.py
@@ -20,7 +18,7 @@ DEFAULT_API_URL = "https://web-production-ed3cf4.up.railway.app"
 API_URL = os.environ.get("API_URL", DEFAULT_API_URL)
 
 st.set_page_config(
-    page_title="Student Dropout Risk Predictor",
+    page_title="Predicción del Riesgo de Deserción Estudiantil",
     page_icon=":bar_chart:",
     layout="wide",
 )
@@ -46,136 +44,89 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- Idioma ---
-if "lang" not in st.session_state:
-    st.session_state.lang = "en"
-
-top_l, top_r = st.columns([5, 1])
-with top_r:
-    lang_choice = st.radio(
-        "Language / Idioma", ["English", "Español"],
-        index=0 if st.session_state.lang == "en" else 1,
-        horizontal=True, label_visibility="collapsed",
-    )
-    st.session_state.lang = "en" if lang_choice == "English" else "es"
-
-LANG = st.session_state.lang
-
+# --- Textos de la interfaz ---
+TEXTOS = {
+    "title": "Predicción del Riesgo de Deserción Estudiantil",
+    "subtitle": "Aprendizaje de Máquina I — UNA Puno · Random Forest + explicabilidad SHAP",
+    "load_low": "Cargar ejemplo de bajo riesgo",
+    "load_high": "Cargar ejemplo de alto riesgo",
+    "own_data": "O ingresa los datos del estudiante",
+    "section_personal": "Datos personales y socioeconómicos",
+    "section_financial": "Situación financiera y familiar",
+    "section_enrollment": "Modalidad de matrícula",
+    "section_sem1": "Desempeño académico — 1.er semestre",
+    "section_sem2": "Desempeño académico — 2.º semestre",
+    "section_macro": "Contexto macroeconómico",
+    "marital_status": "Estado civil",
+    "application_mode": "Modalidad de postulación",
+    "application_order": "Orden de postulación [0-9]",
+    "course": "Carrera",
+    "gender": "Género",
+    "female": "Mujer",
+    "male": "Hombre",
+    "age": "Edad al matricularse",
+    "nationality": "Nacionalidad",
+    "displaced": "Desplazado",
+    "international": "Internacional",
+    "special_needs": "Necesidades educativas especiales",
+    "yes": "Sí",
+    "no": "No",
+    "debtor": "Deudor",
+    "tuition_ok": "Matrícula al día",
+    "scholarship": "Becario",
+    "previous_qual": "Calificación previa",
+    "mothers_qual": "Calificación de la madre",
+    "fathers_qual": "Calificación del padre",
+    "mothers_occ": "Ocupación de la madre",
+    "fathers_occ": "Ocupación del padre",
+    "attendance": "Turno",
+    "evening": "Vespertino",
+    "daytime": "Diurno",
+    "credited": "Convalidadas",
+    "enrolled": "Matriculadas",
+    "evaluations": "Evaluaciones",
+    "approved": "Aprobadas",
+    "grade": "Nota",
+    "without_eval": "Sin evaluación",
+    "unemployment": "Tasa de desempleo (%)",
+    "inflation": "Tasa de inflación (%)",
+    "gdp": "PBI",
+    "predict_button": "Predecir riesgo de deserción",
+    "querying": "Consultando el modelo...",
+    "api_error": "No se pudo contactar la API en",
+    "result_title": "Resultado de la predicción",
+    "prediction": "Predicción",
+    "risk_level": "Nivel de riesgo",
+    "dropout_prob": "Probabilidad de deserción",
+    "gauge_title": "Probabilidad de deserción",
+    "shap_title": "Los 3 factores que más influyeron — SHAP",
+    "shap_axis": "Impacto SHAP (+ aumenta el riesgo, − disminuye el riesgo)",
+    "raw_json": "Respuesta de la API — JSON",
+    "connected": "Conectado a la API en:",
+    "low": "Bajo",
+    "medium": "Medio",
+    "high": "Alto",
+}
 
 def t(key):
-    return TEXTS[key][LANG]
-
-
-TEXTS = {
-    "title": {"en": "Student Dropout Risk Predictor", "es": "Predictor de Riesgo de Deserción"},
-    "subtitle": {
-        "en": "Machine Learning I — UNA Puno · Random Forest + SHAP explainability",
-        "es": "Aprendizaje de Máquina I — UNA Puno · Random Forest + explicabilidad SHAP",
-    },
-    "load_low": {"en": "Load low-risk example", "es": "Cargar ejemplo bajo riesgo"},
-    "load_high": {"en": "Load high-risk example", "es": "Cargar ejemplo alto riesgo"},
-    "own_data": {
-        "en": "Or fill in your own student data below",
-        "es": "O ingresa los datos de tu propio estudiante abajo",
-    },
-    "section_personal": {"en": "Personal & Socioeconomic Data", "es": "Datos personales y socioeconómicos"},
-    "section_financial": {"en": "Financial & Family Background", "es": "Situación financiera y familiar"},
-    "section_enrollment": {"en": "Enrollment Mode", "es": "Modalidad de matrícula"},
-    "section_sem1": {"en": "Academic Performance — 1st Semester", "es": "Desempeño académico — 1er semestre"},
-    "section_sem2": {"en": "Academic Performance — 2nd Semester", "es": "Desempeño académico — 2do semestre"},
-    "section_macro": {"en": "Macroeconomic Context", "es": "Contexto macroeconómico"},
-    "marital_status": {"en": "Marital status", "es": "Estado civil"},
-    "application_mode": {"en": "Application mode", "es": "Modalidad de postulación"},
-    "application_order": {"en": "Application order [0-9]", "es": "Orden de postulación [0-9]"},
-    "course": {"en": "Course", "es": "Carrera"},
-    "gender": {"en": "Gender", "es": "Género"},
-    "female": {"en": "Female", "es": "Mujer"},
-    "male": {"en": "Male", "es": "Hombre"},
-    "age": {"en": "Age at enrollment", "es": "Edad al matricularse"},
-    "nationality": {"en": "Nacionality", "es": "Nacionalidad"},
-    "displaced": {"en": "Displaced", "es": "Desplazado"},
-    "international": {"en": "International", "es": "Internacional"},
-    "special_needs": {"en": "Educational special needs", "es": "Necesidades educativas especiales"},
-    "yes": {"en": "Yes", "es": "Sí"},
-    "no": {"en": "No", "es": "No"},
-    "debtor": {"en": "Debtor", "es": "Deudor"},
-    "tuition_ok": {"en": "Tuition fees up to date", "es": "Matrícula al día"},
-    "scholarship": {"en": "Scholarship holder", "es": "Becario"},
-    "previous_qual": {"en": "Previous qualification", "es": "Calificación previa"},
-    "mothers_qual": {"en": "Mother's qualification", "es": "Calificación de la madre"},
-    "fathers_qual": {"en": "Father's qualification", "es": "Calificación del padre"},
-    "mothers_occ": {"en": "Mother's occupation", "es": "Ocupación de la madre"},
-    "fathers_occ": {"en": "Father's occupation", "es": "Ocupación del padre"},
-    "attendance": {"en": "Daytime/evening attendance", "es": "Turno"},
-    "evening": {"en": "Evening", "es": "Vespertino"},
-    "daytime": {"en": "Daytime", "es": "Diurno"},
-    "credited": {"en": "Credited", "es": "Convalidadas"},
-    "enrolled": {"en": "Enrolled", "es": "Matriculadas"},
-    "evaluations": {"en": "Evaluations", "es": "Evaluaciones"},
-    "approved": {"en": "Approved", "es": "Aprobadas"},
-    "grade": {"en": "Grade", "es": "Nota"},
-    "without_eval": {"en": "Without evaluations", "es": "Sin evaluación"},
-    "unemployment": {"en": "Unemployment rate (%)", "es": "Tasa de desempleo (%)"},
-    "inflation": {"en": "Inflation rate (%)", "es": "Tasa de inflación (%)"},
-    "gdp": {"en": "GDP", "es": "PBI"},
-    "predict_button": {"en": "Predict dropout risk", "es": "Predecir riesgo de deserción"},
-    "querying": {"en": "Querying the model...", "es": "Consultando el modelo..."},
-    "api_error": {"en": "Could not reach the API at", "es": "No se pudo contactar la API en"},
-    "result_title": {"en": "Prediction Result", "es": "Resultado de la predicción"},
-    "prediction": {"en": "Prediction", "es": "Predicción"},
-    "risk_level": {"en": "Risk level", "es": "Nivel de riesgo"},
-    "dropout_prob": {"en": "Dropout probability", "es": "Probabilidad de abandono"},
-    "gauge_title": {"en": "Dropout probability", "es": "Probabilidad de deserción"},
-    "shap_title": {"en": "Top 3 factors behind this prediction — SHAP", "es": "Los 3 factores que más influyeron — SHAP"},
-    "shap_axis": {
-        "en": "SHAP impact (+ pushes to Dropout, − pushes to No Dropout)",
-        "es": "Impacto SHAP (+ empuja a Dropout, − empuja a No Dropout)",
-    },
-    "raw_json": {"en": "Raw API response — JSON", "es": "Respuesta cruda de la API — JSON"},
-    "connected": {"en": "Connected to API at:", "es": "Conectado a la API en:"},
-    "low": {"en": "Low", "es": "Bajo"},
-    "medium": {"en": "Medium", "es": "Medio"},
-    "high": {"en": "High", "es": "Alto"},
-}
+    return TEXTOS[key]
 
 st.markdown(f'<div class="main-title">{t("title")}</div>', unsafe_allow_html=True)
 st.markdown(f'<div class="subtitle">{t("subtitle")}</div>', unsafe_allow_html=True)
 
-# --- Diccionarios de categorías bilingües (verificados contra notebooks/dataset.csv) ---
+# --- Diccionarios de categorías en español (códigos originales del dataset) ---
 
-MARITAL_STATUS = {
-    "en": {1: "Single", 2: "Married", 3: "Widower", 4: "Divorced", 5: "Facto union", 6: "Legally separated"},
-    "es": {1: "Soltero/a", 2: "Casado/a", 3: "Viudo/a", 4: "Divorciado/a", 5: "Unión de hecho", 6: "Separado/a legalmente"},
-}
+
+MARITAL_STATUS = {1: "Soltero/a", 2: "Casado/a", 3: "Viudo/a", 4: "Divorciado/a", 5: "Unión de hecho", 6: "Separado/a legalmente"}
 
 NATIONALITY = {
-    "en": {
-        1: "Portuguese", 2: "German", 3: "Spanish", 4: "Italian", 5: "Dutch", 6: "English",
-        7: "Lithuanian", 8: "Angolan", 9: "Cape Verdean", 10: "Guinean", 11: "Mozambican",
-        12: "Santomean", 13: "Turkish", 14: "Brazilian", 15: "Romanian", 16: "Moldovan",
-        17: "Mexican", 18: "Ukrainian", 19: "Russian", 20: "Cuban", 21: "Colombian",
-    },
-    "es": {
         1: "Portugués", 2: "Alemán", 3: "Español", 4: "Italiano", 5: "Neerlandés", 6: "Inglés",
         7: "Lituano", 8: "Angoleño", 9: "Caboverdiano", 10: "Guineano", 11: "Mozambiqueño",
         12: "Santotomense", 13: "Turco", 14: "Brasileño", 15: "Rumano", 16: "Moldavo",
         17: "Mexicano", 18: "Ucraniano", 19: "Ruso", 20: "Cubano", 21: "Colombiano",
-    },
-}
+    }
 
 APPLICATION_MODE = {
-    "en": {
-        1: "1st phase - general contingent", 2: "Ordinance No. 612/93",
-        3: "1st phase - special contingent (Azores)", 4: "Holders of other higher courses",
-        5: "Ordinance No. 854-B/99", 6: "International student (bachelor)",
-        7: "1st phase - special contingent (Madeira)", 8: "2nd phase - general contingent",
-        9: "3rd phase - general contingent", 10: "Ordinance 533-A/99, b2 (Different Plan)",
-        11: "Ordinance 533-A/99, b3 (Other Institution)", 12: "Over 23 years old",
-        13: "Transfer", 14: "Change of course", 15: "Technological specialization diploma holders",
-        16: "Change of institution/course", 17: "Short cycle diploma holders",
-        18: "Change of institution/course (International)",
-    },
-    "es": {
         1: "1ª fase - contingente general", 2: "Decreto No. 612/93",
         3: "1ª fase - contingente especial (Azores)", 4: "Titulares de otros cursos superiores",
         5: "Decreto No. 854-B/99", 6: "Estudiante internacional (pregrado)",
@@ -185,41 +136,18 @@ APPLICATION_MODE = {
         13: "Traslado", 14: "Cambio de carrera", 15: "Titulares de diploma de especialización tecnológica",
         16: "Cambio de institución/carrera", 17: "Titulares de diploma de ciclo corto",
         18: "Cambio de institución/carrera (Internacional)",
-    },
-}
+    }
 
 COURSE = {
-    "en": {
-        1: "Biofuel Production Technologies", 2: "Animation and Multimedia Design",
-        3: "Social Service (evening)", 4: "Agronomy", 5: "Communication Design",
-        6: "Veterinary Nursing", 7: "Informatics Engineering", 8: "Equinculture",
-        9: "Management", 10: "Social Service", 11: "Tourism", 12: "Nursing",
-        13: "Oral Hygiene", 14: "Advertising and Marketing Management",
-        15: "Journalism and Communication", 16: "Basic Education", 17: "Management (evening)",
-    },
-    "es": {
         1: "Tecnologías de Producción de Biocombustibles", 2: "Diseño de Animación y Multimedia",
         3: "Servicio Social (nocturno)", 4: "Agronomía", 5: "Diseño de Comunicación",
         6: "Enfermería Veterinaria", 7: "Ingeniería Informática", 8: "Equinicultura",
         9: "Gestión", 10: "Servicio Social", 11: "Turismo", 12: "Enfermería",
         13: "Higiene Oral", 14: "Publicidad y Gestión de Marketing",
         15: "Periodismo y Comunicación", 16: "Educación Básica", 17: "Gestión (nocturno)",
-    },
-}
+    }
 
 PREVIOUS_QUALIFICATION = {
-    "en": {
-        1: "Secondary education", 2: "Higher education - bachelor's degree",
-        3: "Higher education - degree", 4: "Higher education - master's degree",
-        5: "Higher education - doctorate", 6: "Frequency of higher education",
-        7: "12th year - not completed", 8: "11th year - not completed",
-        9: "Other - 11th year of schooling", 10: "10th year of schooling",
-        11: "10th year - not completed", 12: "Basic education 3rd cycle (9th-11th)",
-        13: "Basic education 2nd cycle (6th-8th)", 14: "Technological specialization course",
-        15: "Higher education - degree (1st cycle)", 16: "Professional higher technical course",
-        17: "Higher education - master's (2nd cycle)",
-    },
-    "es": {
         1: "Educación secundaria", 2: "Educación superior - licenciatura",
         3: "Educación superior - grado", 4: "Educación superior - maestría",
         5: "Educación superior - doctorado", 6: "Frecuencia de educación superior",
@@ -229,29 +157,9 @@ PREVIOUS_QUALIFICATION = {
         13: "Educación básica 2do ciclo (6°-8°)", 14: "Curso de especialización tecnológica",
         15: "Educación superior - grado (1er ciclo)", 16: "Curso técnico superior profesional",
         17: "Educación superior - maestría (2do ciclo)",
-    },
-}
+    }
 
 PARENT_QUALIFICATION = {
-    "en": {
-        1: "Secondary Education (12th year) or Eq.", 2: "Higher Ed. - bachelor's degree",
-        3: "Higher Ed. - degree", 4: "Higher Ed. - master's degree", 5: "Higher Ed. - doctorate",
-        6: "Frequency of Higher Education", 7: "12th year - not completed",
-        8: "11th year - not completed", 9: "7th Year (Old)", 10: "Other - 11th year of schooling",
-        11: "2nd year complementary high school", 12: "10th year of schooling",
-        13: "General commerce course", 14: "Basic education 3rd cycle (9th-11th)",
-        15: "Complementary High School Course", 16: "Technical-professional course",
-        17: "Complementary HS Course - not concluded", 18: "7th year of schooling",
-        19: "2nd cycle general high school course", 20: "9th year - not completed",
-        21: "8th year of schooling", 22: "General Course of Admin. and Commerce",
-        23: "Supplementary Accounting and Admin.", 24: "Unknown",
-        25: "Cannot read or write", 26: "Can read, no 4th year of schooling",
-        27: "Basic education 1st cycle (4th-5th)", 28: "Basic education 2nd cycle (6th-8th)",
-        29: "Technological specialization course", 30: "Higher education - degree (1st cycle)",
-        31: "Specialized higher studies course", 32: "Professional higher technical course",
-        33: "Higher Ed. - master's (2nd cycle)", 34: "Higher Ed. - doctorate (3rd cycle)",
-    },
-    "es": {
         1: "Educación secundaria (12°) o equiv.", 2: "Ed. superior - licenciatura",
         3: "Ed. superior - grado", 4: "Ed. superior - maestría", 5: "Ed. superior - doctorado",
         6: "Frecuencia de educación superior", 7: "12° año - no completado",
@@ -268,35 +176,9 @@ PARENT_QUALIFICATION = {
         29: "Curso de especialización tecnológica", 30: "Educación superior - grado (1er ciclo)",
         31: "Curso de estudios superiores especializados", 32: "Curso técnico superior profesional",
         33: "Ed. superior - maestría (2do ciclo)", 34: "Ed. superior - doctorado (3er ciclo)",
-    },
-}
+    }
 
 OCCUPATION = {
-    "en": {
-        1: "Student", 2: "Legislative/Executive reps, Directors",
-        3: "Intellectual & Scientific Specialists", 4: "Intermediate Level Technicians",
-        5: "Administrative staff", 6: "Personal Services, Security, Sellers",
-        7: "Farmers & Skilled Agri/Fishery Workers", 8: "Skilled Industry/Construction Workers",
-        9: "Machine Operators & Assembly Workers", 10: "Unskilled Workers",
-        11: "Armed Forces Professions", 12: "Other Situation", 13: "(blank)",
-        14: "Armed Forces Officers", 15: "Armed Forces Sergeants",
-        16: "Other Armed Forces personnel", 17: "Directors of admin./commercial services",
-        18: "Hotel, catering, trade directors", 19: "Physical sciences/engineering specialists",
-        20: "Health professionals", 21: "Teachers", 22: "Finance/accounting specialists",
-        23: "Science & engineering technicians", 24: "Intermediate health technicians",
-        25: "Legal/social/sports/cultural technicians", 26: "ICT technicians",
-        27: "Office workers, secretaries", 28: "Data/accounting/financial operators",
-        29: "Other administrative support", 30: "Personal service workers", 31: "Sellers",
-        32: "Personal care workers", 33: "Protection & security personnel",
-        34: "Market-oriented farmers", 35: "Subsistence farmers/fishers/hunters",
-        36: "Skilled construction workers", 37: "Skilled metallurgy workers",
-        38: "Skilled electricity/electronics workers", 39: "Food/wood/clothing industry workers",
-        40: "Fixed plant/machine operators", 41: "Assembly workers",
-        42: "Vehicle drivers & equipment operators", 43: "Unskilled agri/fishery workers",
-        44: "Unskilled extractive/construction/transport", 45: "Meal preparation assistants",
-        46: "Street vendors (non-food) & street services",
-    },
-    "es": {
         1: "Estudiante", 2: "Representantes legislativo/ejecutivo, directores",
         3: "Especialistas en actividades intelectuales/científicas", 4: "Técnicos de nivel intermedio",
         5: "Personal administrativo", 6: "Servicios personales, seguridad, vendedores",
@@ -319,12 +201,11 @@ OCCUPATION = {
         42: "Conductores de vehículos y equipos móviles", 43: "Trabajadores no calificados agro/pesca",
         44: "Trabajadores no calificados extractiva/construcción/transporte", 45: "Auxiliares de preparación de alimentos",
         46: "Vendedores ambulantes (no alimentos) y servicios callejeros",
-    },
-}
+    }
 
 
 def selectbox_code(label, category_dict, current_value, key=None):
-    options_dict = category_dict[LANG]
+    options_dict = category_dict
     keys = list(options_dict.keys())
     idx = keys.index(current_value) if current_value in keys else 0
     return st.selectbox(
@@ -445,26 +326,26 @@ with st.form("prediction_form"):
     with st.expander(t("section_sem1")):
         c1, c2, c3 = st.columns(3)
         with c1:
-            cu1_credited = st.number_input(f'{t("credited")} — 1st sem', 0, 30, d["Curricular units 1st sem (credited)"])
-            cu1_enrolled = st.number_input(f'{t("enrolled")} — 1st sem', 0, 30, d["Curricular units 1st sem (enrolled)"])
+            cu1_credited = st.number_input(f'{t("credited")} — 1.er semestre', 0, 30, d["Curricular units 1st sem (credited)"])
+            cu1_enrolled = st.number_input(f'{t("enrolled")} — 1.er semestre', 0, 30, d["Curricular units 1st sem (enrolled)"])
         with c2:
-            cu1_evaluations = st.number_input(f'{t("evaluations")} — 1st sem', 0, 30, d["Curricular units 1st sem (evaluations)"])
-            cu1_approved = st.number_input(f'{t("approved")} — 1st sem', 0, 30, d["Curricular units 1st sem (approved)"])
+            cu1_evaluations = st.number_input(f'{t("evaluations")} — 1.er semestre', 0, 30, d["Curricular units 1st sem (evaluations)"])
+            cu1_approved = st.number_input(f'{t("approved")} — 1.er semestre', 0, 30, d["Curricular units 1st sem (approved)"])
         with c3:
-            cu1_grade = st.number_input(f'{t("grade")} — 1st sem', 0.0, 20.0, float(d["Curricular units 1st sem (grade)"]))
-            cu1_without_eval = st.number_input(f'{t("without_eval")} — 1st sem', 0, 30, d["Curricular units 1st sem (without evaluations)"])
+            cu1_grade = st.number_input(f'{t("grade")} — 1.er semestre', 0.0, 20.0, float(d["Curricular units 1st sem (grade)"]))
+            cu1_without_eval = st.number_input(f'{t("without_eval")} — 1.er semestre', 0, 30, d["Curricular units 1st sem (without evaluations)"])
 
     with st.expander(t("section_sem2")):
         c1, c2, c3 = st.columns(3)
         with c1:
-            cu2_credited = st.number_input(f'{t("credited")} — 2nd sem', 0, 30, d["Curricular units 2nd sem (credited)"])
-            cu2_enrolled = st.number_input(f'{t("enrolled")} — 2nd sem', 0, 30, d["Curricular units 2nd sem (enrolled)"])
+            cu2_credited = st.number_input(f'{t("credited")} — 2.º semestre', 0, 30, d["Curricular units 2nd sem (credited)"])
+            cu2_enrolled = st.number_input(f'{t("enrolled")} — 2.º semestre', 0, 30, d["Curricular units 2nd sem (enrolled)"])
         with c2:
-            cu2_evaluations = st.number_input(f'{t("evaluations")} — 2nd sem', 0, 30, d["Curricular units 2nd sem (evaluations)"])
-            cu2_approved = st.number_input(f'{t("approved")} — 2nd sem', 0, 30, d["Curricular units 2nd sem (approved)"])
+            cu2_evaluations = st.number_input(f'{t("evaluations")} — 2.º semestre', 0, 30, d["Curricular units 2nd sem (evaluations)"])
+            cu2_approved = st.number_input(f'{t("approved")} — 2.º semestre', 0, 30, d["Curricular units 2nd sem (approved)"])
         with c3:
-            cu2_grade = st.number_input(f'{t("grade")} — 2nd sem', 0.0, 20.0, float(d["Curricular units 2nd sem (grade)"]))
-            cu2_without_eval = st.number_input(f'{t("without_eval")} — 2nd sem', 0, 30, d["Curricular units 2nd sem (without evaluations)"])
+            cu2_grade = st.number_input(f'{t("grade")} — 2.º semestre', 0.0, 20.0, float(d["Curricular units 2nd sem (grade)"]))
+            cu2_without_eval = st.number_input(f'{t("without_eval")} — 2.º semestre', 0, 30, d["Curricular units 2nd sem (without evaluations)"])
 
     with st.expander(t("section_macro")):
         c1, c2, c3 = st.columns(3)
@@ -510,7 +391,7 @@ if submitted:
             response.raise_for_status()
             result = response.json()
     except requests.exceptions.RequestException as e:
-        st.error(f"{t('api_error')} {API_URL}. Detail: {e}")
+        st.error(f"{t('api_error')} {API_URL}. Detalle: {e}")
         st.stop()
 
     st.divider()
@@ -526,7 +407,11 @@ if submitted:
         col_left, col_right = st.columns([1, 1])
 
         with col_left:
-            st.markdown(f"**{t('prediction')}:** {result['prediction']}")
+            prediction_es = {
+                "Dropout": "Deserción",
+                "No Dropout": "No deserción",
+            }.get(result["prediction"], result["prediction"])
+            st.markdown(f"**{t('prediction')}:** {prediction_es}")
             st.markdown(
                 f'**{t("risk_level")}:** <span class="risk-badge {risk_class}">{risk_label}</span>',
                 unsafe_allow_html=True,
@@ -554,7 +439,36 @@ if submitted:
         with col_right:
             st.markdown(f"**{t('shap_title')}**")
             factors = result["top_factors"]
-            names = [f["feature"] for f in factors][::-1]
+            FEATURE_NAMES_ES = {
+    "Curricular units 1st sem (credited)": "Unidades convalidadas — 1.er semestre",
+    "Curricular units 1st sem (enrolled)": "Unidades matriculadas — 1.er semestre",
+    "Curricular units 1st sem (evaluations)": "Evaluaciones — 1.er semestre",
+    "Curricular units 1st sem (approved)": "Unidades aprobadas — 1.er semestre",
+    "Curricular units 1st sem (grade)": "Nota — 1.er semestre",
+    "Curricular units 1st sem (without evaluations)": "Unidades sin evaluación — 1.er semestre",
+    "Curricular units 2nd sem (credited)": "Unidades convalidadas — 2.º semestre",
+    "Curricular units 2nd sem (enrolled)": "Unidades matriculadas — 2.º semestre",
+    "Curricular units 2nd sem (evaluations)": "Evaluaciones — 2.º semestre",
+    "Curricular units 2nd sem (approved)": "Unidades aprobadas — 2.º semestre",
+    "Curricular units 2nd sem (grade)": "Nota — 2.º semestre",
+    "Curricular units 2nd sem (without evaluations)": "Unidades sin evaluación — 2.º semestre",
+    "Age at enrollment": "Edad al matricularse",
+    "Tuition fees up to date": "Matrícula al día",
+    "Debtor": "Deudor",
+    "Scholarship holder": "Becario",
+    "Gender": "Género",
+    "Application mode": "Modalidad de postulación",
+    "Application order": "Orden de postulación",
+    "Course": "Carrera",
+    "Previous qualification": "Calificación previa",
+    "Unemployment rate": "Tasa de desempleo",
+    "Inflation rate": "Tasa de inflación",
+    "GDP": "PBI",
+}
+            names = [
+                FEATURE_NAMES_ES.get(f["feature"], f["feature"])
+                for f in factors
+            ][::-1]
             impacts = [f["impacto"] for f in factors][::-1]
             colors = ["#dc2626" if v > 0 else "#16a34a" for v in impacts]
 
