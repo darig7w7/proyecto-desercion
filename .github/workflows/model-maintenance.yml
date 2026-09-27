@@ -30,10 +30,50 @@ jobs:
         run: |
           python -m maintenance.pipeline
 
+      - name: Consultar decisión de promoción
+        id: promotion
+        shell: bash
+        run: |
+          STATUS=$(python - <<'PY'
+          import json
+
+          with open(
+              "models/registry/v1.1.0/metadata.json",
+              "r",
+              encoding="utf-8",
+          ) as f:
+              metadata = json.load(f)
+
+          print(metadata["status"])
+          PY
+          )
+
+          echo "status=$STATUS" >> "$GITHUB_OUTPUT"
+          echo "Estado del candidato: $STATUS"
+
+      - name: Activar candidato aprobado
+        if: steps.promotion.outputs.status == 'approved'
+        run: |
+          python -m maintenance.activate v1.1.0
+
+      - name: Ejecutar pruebas después de la activación
+        if: steps.promotion.outputs.status == 'approved'
+        run: |
+          python -m pytest -v
+
+      - name: Candidato rechazado
+        if: steps.promotion.outputs.status != 'approved'
+        run: |
+          echo "El candidato no cumple la política de promoción."
+          echo "No se modifica el modelo activo."
+          echo "Se mantiene la versión actual de producción."
+
       - name: Mostrar resultado del mantenimiento
+        if: always()
         run: |
           echo "===== MODELO CANDIDATO ====="
           cat models/registry/v1.1.0/metadata.json
+
           echo ""
           echo "===== MODELO EN PRODUCCION ====="
           cat models/registry/production.json
