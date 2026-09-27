@@ -38,3 +38,13 @@ jobs:
           echo "===== MODELO EN PRODUCCION ====="
           cat models/registry/production.json
 
+      - name: Guardar evidencia del mantenimiento
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidencia-mantenimiento-modelo
+          path: |
+            models/registry/production.json
+            models/registry/v1.0.0-baseline/metadata.json
+            models/registry/v1.1.0/metadata.json
+          retention-days: 30
