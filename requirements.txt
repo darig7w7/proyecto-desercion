@@ -8,7 +8,7 @@ numpy>=1.26
 # el modelo (ver notebooks/entrenamiento.ipynb). Si el modelo se reentrena con
 # otra versión, actualizar estas dos líneas para que coincidan, evitando así
 # advertencias o errores de compatibilidad al cargar el archivo .pkl.
-scikit-learn==1.8.0
+scikit-learn==1.9.0
 xgboost==3.4.1
 
 shap>=0.45
