@@ -82,6 +82,35 @@ jobs:
             git push origin HEAD:main
           fi
 
+      - name: Verificar despliegue en Railway
+        if: steps.promotion.outputs.status == 'approved'
+        run: |
+          API_URL="https://web-production-ed3cf4.up.railway.app/health"
+
+          echo "Esperando que Railway despliegue la nueva versión..."
+
+          for intento in {1..12}; do
+            echo "Intento $intento de 12..."
+
+            RESPONSE=$(curl --silent --show-error \
+              --max-time 10 \
+              "$API_URL" || true)
+
+            echo "Respuesta: $RESPONSE"
+
+            if echo "$RESPONSE" | grep -q '"status":"ok"' && \
+               echo "$RESPONSE" | grep -q '"model_loaded":true'; then
+              echo "Despliegue verificado correctamente."
+              exit 0
+            fi
+
+            echo "La API todavía no está lista."
+            sleep 10
+          done
+
+          echo "ERROR: Railway no respondió correctamente."
+          exit 1
+
       - name: Candidato rechazado
         if: steps.promotion.outputs.status != 'approved'
         run: |
