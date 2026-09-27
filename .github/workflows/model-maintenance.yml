@@ -86,8 +86,10 @@ jobs:
         if: steps.promotion.outputs.status == 'approved'
         run: |
           API_URL="https://web-production-ed3cf4.up.railway.app/health"
+          EXPECTED_VERSION="v1.1.0"
 
           echo "Esperando que Railway despliegue la nueva versión..."
+          echo "Versión esperada: $EXPECTED_VERSION"
 
           for intento in {1..12}; do
             echo "Intento $intento de 12..."
@@ -98,17 +100,36 @@ jobs:
 
             echo "Respuesta: $RESPONSE"
 
-            if echo "$RESPONSE" | grep -q '"status":"ok"' && \
-               echo "$RESPONSE" | grep -q '"model_loaded":true'; then
+            if RESPONSE="$RESPONSE" EXPECTED_VERSION="$EXPECTED_VERSION" python - <<'PY'
+          import json
+          import os
+          import sys
+
+          try:
+              data = json.loads(os.environ["RESPONSE"])
+              expected = os.environ["EXPECTED_VERSION"]
+
+              valid = (
+                  data.get("status") == "ok"
+                  and data.get("model_loaded") is True
+                  and data.get("model_version") == expected
+              )
+
+              sys.exit(0 if valid else 1)
+          except (json.JSONDecodeError, KeyError):
+              sys.exit(1)
+          PY
+            then
               echo "Despliegue verificado correctamente."
+              echo "Railway está sirviendo el modelo $EXPECTED_VERSION."
               exit 0
             fi
 
-            echo "La API todavía no está lista."
+            echo "Railway todavía no está sirviendo $EXPECTED_VERSION."
             sleep 10
           done
 
-          echo "ERROR: Railway no respondió correctamente."
+          echo "ERROR: Railway no desplegó la versión $EXPECTED_VERSION."
           exit 1
 
       - name: Candidato rechazado
