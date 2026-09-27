@@ -1,0 +1,40 @@
+name: Model Maintenance - Student Dropout
+
+on:
+  workflow_dispatch:
+
+jobs:
+  maintenance:
+    name: Mantenimiento del modelo
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Ejecutar pruebas antes del mantenimiento
+        run: |
+          python -m pytest -v
+
+      - name: Ejecutar pipeline de mantenimiento
+        run: |
+          python -m maintenance.pipeline
+
+      - name: Mostrar resultado del mantenimiento
+        run: |
+          echo "===== MODELO CANDIDATO ====="
+          cat models/registry/v1.1.0/metadata.json
+          echo ""
+          echo "===== MODELO EN PRODUCCION ====="
+          cat models/registry/production.json
+
