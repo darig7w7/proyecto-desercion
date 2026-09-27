@@ -1,0 +1,24 @@
+{
+  "version": "1.0.0",
+  "status": "production",
+  "algorithm": "RandomForestClassifier",
+  "model_file": "models/modelo_desercion.pkl",
+  "columns_file": "models/columnas.pkl",
+  "n_features": 34,
+  "classes": [0, 1],
+  "hyperparameters": {
+    "n_estimators": 200,
+    "max_depth": 12,
+    "min_samples_leaf": 3,
+    "class_weight": "balanced"
+  },
+  "metrics": {
+    "precision_dropout": 0.80,
+    "recall_dropout": 0.82,
+    "f1_dropout": 0.81
+  },
+  "training_library": {
+    "scikit_learn": "1.9.0"
+  },
+  "description": "Modelo base presentado en la Unidad I."
+}

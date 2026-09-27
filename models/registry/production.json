@@ -1,0 +1,6 @@
+{
+  "production_version": "1.0.0",
+  "model_file": "models/modelo_desercion.pkl",
+  "columns_file": "models/columnas.pkl"
+}
+
