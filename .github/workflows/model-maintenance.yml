@@ -3,6 +3,9 @@ name: Model Maintenance - Student Dropout
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   maintenance:
     name: Mantenimiento del modelo
@@ -60,6 +63,24 @@ jobs:
         if: steps.promotion.outputs.status == 'approved'
         run: |
           python -m pytest -v
+
+      - name: Persistir modelo aprobado
+        if: steps.promotion.outputs.status == 'approved'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -f models/modelo_desercion.pkl
+          git add -f models/columnas.pkl
+          git add models/registry/production.json
+          git add models/registry/v1.1.0/metadata.json
+
+          if git diff --cached --quiet; then
+            echo "No existen cambios de producción para persistir."
+          else
+            git commit -m "Desplegar modelo aprobado v1.1.0"
+            git push origin HEAD:main
+          fi
 
       - name: Candidato rechazado
         if: steps.promotion.outputs.status != 'approved'
