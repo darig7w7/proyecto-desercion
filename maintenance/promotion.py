@@ -1,8 +1,10 @@
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 
 REGISTRY_DIR = Path("models/registry")
+PRODUCTION_FILE = REGISTRY_DIR / "production.json"
 
 
 def load_metadata(version):
@@ -21,7 +23,6 @@ def should_promote(baseline_metrics, candidate_metrics):
     - F1
     - Recall
     """
-
     f1_ok = candidate_metrics["f1"] >= baseline_metrics["f1"]
     recall_ok = (
         candidate_metrics["recall"]
@@ -32,7 +33,7 @@ def should_promote(baseline_metrics, candidate_metrics):
 
 
 def update_candidate_status(version, status):
-    """Actualiza el estado del modelo candidato."""
+    """Actualiza el estado de una versión registrada."""
     path = REGISTRY_DIR / version / "metadata.json"
 
     with open(path, "r", encoding="utf-8") as f:
@@ -42,6 +43,29 @@ def update_candidate_status(version, status):
 
     with open(path, "w", encoding="utf-8") as f:
         json.dump(metadata, f, indent=2)
+
+
+def register_approved_candidate(version):
+    """
+    Registra qué modelo fue aprobado por el pipeline.
+
+    No sustituye todavía el modelo físico utilizado por FastAPI.
+    Esto evita modificar producción automáticamente hasta que
+    exista un mecanismo persistente de despliegue de artefactos.
+    """
+    with open(PRODUCTION_FILE, "r", encoding="utf-8") as f:
+        production = json.load(f)
+
+    production["approved_candidate"] = {
+        "version": version,
+        "model_file": f"models/registry/{version}/modelo.pkl",
+        "columns_file": f"models/registry/{version}/columnas.pkl",
+        "approved_at": datetime.now(timezone.utc).isoformat(),
+        "deployment_status": "pending",
+    }
+
+    with open(PRODUCTION_FILE, "w", encoding="utf-8") as f:
+        json.dump(production, f, indent=2)
 
 
 def main():
@@ -77,7 +101,11 @@ def main():
             "approved",
         )
 
-        print("Candidato APROBADO para promoción.")
+        register_approved_candidate(candidate_version)
+
+        print("Candidato APROBADO.")
+        print("Registrado como candidato para despliegue.")
+        print("Estado de despliegue: PENDING.")
     else:
         update_candidate_status(
             candidate_version,
@@ -87,7 +115,8 @@ def main():
         print("Candidato RECHAZADO.")
         print("Se mantiene el modelo actual en producción.")
 
+    return promote
+
 
 if __name__ == "__main__":
     main()
-
