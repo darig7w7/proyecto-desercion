@@ -8,7 +8,7 @@ from maintenance.prepare_data import (
 )
 
 from maintenance.promotion import should_promote
-
+from maintenance.activate import validate_candidate
 
 def create_valid_dataset():
     """
@@ -76,3 +76,13 @@ def test_worse_candidate_is_not_promoted():
     )
 
     assert result is False
+def test_rejected_model_cannot_be_activated():
+    """
+    Verifica que un modelo rechazado por la política
+    de promoción no pueda pasar a producción.
+    """
+    with pytest.raises(
+        ValueError,
+        match="no está aprobada para despliegue",
+    ):
+        validate_candidate("v1.1.0")

@@ -25,3 +25,5 @@ maintenance/data/
 # Artefactos generados durante el reentrenamiento
 models/registry/*/modelo.pkl
 models/registry/*/columnas.pkl
+# Backups locales de modelos activados
+models/backups/
