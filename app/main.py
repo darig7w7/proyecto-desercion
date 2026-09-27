@@ -11,7 +11,7 @@ Ejecutar localmente:
 
 Documentación interactiva (Swagger UI) disponible en /docs una vez desplegado.
 """
-
+import json
 import os
 from contextlib import asynccontextmanager
 
@@ -27,6 +27,28 @@ from app.schemas import StudentFeatures, PredictionResponse, HealthResponse
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODEL_PATH = os.path.join(BASE_DIR, "models", "modelo_desercion.pkl")
 COLUMNS_PATH = os.path.join(BASE_DIR, "models", "columnas.pkl")
+PRODUCTION_PATH = os.path.join(
+    BASE_DIR,
+    "models",
+    "registry",
+    "production.json",
+)
+
+
+def _obtener_version_modelo():
+    """Obtiene la versión del modelo registrada actualmente en producción."""
+    try:
+        with open(PRODUCTION_PATH, "r", encoding="utf-8") as f:
+            production = json.load(f)
+
+        return str(
+            production.get(
+                "production_version",
+                "unknown",
+            )
+        )
+    except (OSError, json.JSONDecodeError):
+        return "unknown"
 
 
 @asynccontextmanager
@@ -82,12 +104,24 @@ def root():
 
 @app.get("/health", response_model=HealthResponse, tags=["General"])
 def health():
-    """Verifica que la API está viva y el modelo cargado correctamente."""
+    """Verifica el estado de la API y la versión del modelo activo."""
+    model_version = _obtener_version_modelo()
+
     try:
         modelo, _, _ = _cargar_modelo()
-        return HealthResponse(status="ok", model_loaded=modelo is not None)
+
+        return HealthResponse(
+            status="ok",
+            model_loaded=modelo is not None,
+            model_version=model_version,
+        )
+
     except Exception:
-        return HealthResponse(status="error", model_loaded=False)
+        return HealthResponse(
+            status="error",
+            model_loaded=False,
+            model_version=model_version,
+        )
 
 
 def _clasificar_riesgo(prob: float) -> str:
