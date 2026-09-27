@@ -1,4 +1,5 @@
 import json
+import joblib
 import shutil
 from datetime import datetime, timezone
 from pathlib import Path
@@ -24,6 +25,32 @@ def load_metadata(version):
 
     with open(metadata_path, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def validate_active_artifacts():
+    """
+    Verifica que los artefactos activados puedan cargarse
+    y sean compatibles con la API de predicción.
+    """
+    model = joblib.load(ACTIVE_MODEL)
+    columns = joblib.load(ACTIVE_COLUMNS)
+
+    if not hasattr(model, "predict"):
+        raise ValueError(
+            "El modelo activado no implementa predict()."
+        )
+
+    if not hasattr(model, "predict_proba"):
+        raise ValueError(
+            "El modelo activado no implementa predict_proba()."
+        )
+
+    if len(columns) == 0:
+        raise ValueError(
+            "El archivo de columnas está vacío."
+        )
+
+    return True
 
 
 def validate_candidate(version):
@@ -85,8 +112,9 @@ def create_backup():
 
 
 def update_production_registry(version):
-    """Actualiza el registro de la versión activa."""
-
+    """
+    Actualiza el registro de la versión activa.
+    """
     production = {
         "production_version": version,
         "model_file": "models/modelo_desercion.pkl",
@@ -95,14 +123,25 @@ def update_production_registry(version):
     }
 
     with open(PRODUCTION_FILE, "w", encoding="utf-8") as f:
-        json.dump(production, f, indent=2)
+        json.dump(
+            production,
+            f,
+            indent=2,
+        )
 
 
 def activate(version):
     """
     Activa una versión previamente aprobada.
-    """
 
+    Flujo:
+    1. Valida que el candidato esté aprobado.
+    2. Crea un backup del modelo actual.
+    3. Copia los nuevos artefactos.
+    4. Valida que puedan cargarse correctamente.
+    5. Actualiza el registro de producción.
+    6. Si ocurre un error, restaura el backup.
+    """
     print(f"Validando versión {version}...")
 
     model_path, columns_path = validate_candidate(version)
@@ -123,10 +162,16 @@ def activate(version):
             ACTIVE_COLUMNS,
         )
 
+        print("Validando artefactos activados...")
+        validate_active_artifacts()
+
         update_production_registry(version)
 
     except Exception:
-        print("Error durante la activación. Ejecutando rollback...")
+        print(
+            "Error durante la activación. "
+            "Ejecutando rollback..."
+        )
 
         shutil.copy2(
             backup_dir / "modelo_desercion.pkl",
@@ -145,8 +190,12 @@ def activate(version):
 
         raise
 
-    print(f"Versión {version} activada correctamente.")
-    print(f"Backup disponible en: {backup_dir}")
+    print(
+        f"Versión {version} activada correctamente."
+    )
+    print(
+        f"Backup disponible en: {backup_dir}"
+    )
 
     return backup_dir
 
@@ -155,12 +204,17 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Activar una versión aprobada del modelo."
+        description=(
+            "Activar una versión aprobada del modelo."
+        )
     )
 
     parser.add_argument(
         "version",
-        help="Versión del registry a activar. Ejemplo: v1.1.0",
+        help=(
+            "Versión del registry a activar. "
+            "Ejemplo: v1.1.0"
+        ),
     )
 
     args = parser.parse_args()
